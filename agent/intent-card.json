@@ -1,0 +1,119 @@
+{
+  "schema": "autobuilder.intent_card.v1",
+  "prd_source": "/home/jsy/wintermute/autobuilder/PRD-rosetta-serve.md",
+  "root_motivation": "The World Ontology's IRIs are not dereferenceable and there is no W3C SPARQL Protocol endpoint; semantic-web tools (browsers, curl, SPARQLWrapper) cannot reach the lattice graph. rosetta-serve makes the joined lattice + decision graphs addressable linked data over HTTP.",
+  "user_persona": "Joe Yen running wintermute locally; also any standard semantic-web client (browser, curl, Python SPARQLWrapper) pointed at 127.0.0.1:7180.",
+  "unfakeable_metric": {
+    "name": "acceptance_tests_passing",
+    "lower_is_better": false,
+    "harness_command": "cargo test --workspace 2>&1 | grep -c 'test.*ok'",
+    "target": 8
+  },
+  "acceptance_criteria": [
+    {
+      "id": "AC1",
+      "level": "MUST",
+      "description": "rosetta-serve check --store <fixture> loads the store, prints triple count > 0, exits 0; missing/corrupt store exits non-zero with diagnostic.",
+      "test": "tests/acceptance_ac1.rs"
+    },
+    {
+      "id": "AC2",
+      "level": "MUST",
+      "description": "GET /sparql?query=ASK%20{%20?s%20?p%20?o%20} returns application/sparql-results+json with 'boolean': true.",
+      "test": "tests/acceptance_ac2.rs"
+    },
+    {
+      "id": "AC3",
+      "level": "MUST",
+      "description": "SELECT query over Accept: application/sparql-results+json returns well-formed SPARQL JSON results with the requested bindings.",
+      "test": "tests/acceptance_ac3.rs"
+    },
+    {
+      "id": "AC4",
+      "level": "MUST",
+      "description": "CONSTRUCT with Accept: text/turtle returns Turtle that round-trips through oxrdfio; same query with Accept: application/ld+json returns valid JSON-LD.",
+      "test": "tests/acceptance_ac4.rs"
+    },
+    {
+      "id": "AC5",
+      "level": "MUST",
+      "description": "GET /wo/Dignity with Accept: text/turtle returns non-empty bounded description; with Accept: application/ld+json returns valid JSON-LD; unknown IRI returns 404.",
+      "test": "tests/acceptance_ac5.rs"
+    },
+    {
+      "id": "AC6",
+      "level": "MUST",
+      "description": "SPARQL UPDATE (e.g. INSERT DATA) is rejected with HTTP 405 and the store is unchanged (triple count before/after).",
+      "test": "tests/acceptance_ac6.rs"
+    },
+    {
+      "id": "AC7",
+      "level": "MUST",
+      "description": "--load of a rosetta-prov decision graph makes its prov:Activity/verdict triples queryable via /sparql (SELECT returns the loaded verdict).",
+      "test": "tests/acceptance_ac7.rs"
+    },
+    {
+      "id": "AC8",
+      "level": "MUST",
+      "description": "A query exceeding --timeout is aborted with 5xx/diagnostic rather than hanging; subsequent requests still succeed.",
+      "test": "tests/acceptance_ac8.rs"
+    }
+  ],
+  "scope": [
+    "SPARQL 1.1 Protocol endpoint (GET|POST /sparql) — read-only",
+    "IRI dereferencing (GET /{prefix}/{local}) with content negotiation (Turtle/JSON-LD/HTML)",
+    "Store binding (--store <path>) to lattice-join oxigraph store",
+    "Startup loading of extra Turtle files (--load <ttl>…)",
+    "Per-query timeout guard (--timeout)",
+    "Local-only HTTP (127.0.0.1 default)"
+  ],
+  "non_goals": [
+    "SPARQL UPDATE / write operations (rejected by construction)",
+    "Public internet hosting (constellation/herald concern)",
+    "OWL/RDFS inference (the store already has materialized entailments from lattice-join)",
+    "Authentication / TLS (local-only; security is a deferred concern)",
+    "Full JSON-LD framing/context expansion (stub JSON-LD output is sufficient for v0.1)"
+  ],
+  "hard_constraints": {
+    "rust_edition": "2021",
+    "target_kind": "cli",
+    "deny_unsafe": true,
+    "max_deps": null,
+    "msrv": "1.85",
+    "additional": {}
+  },
+  "five_whys_trace": [
+    {
+      "why": 1,
+      "q": "Why build rosetta-serve?",
+      "a": "lattice-join's oxigraph store is only reachable via a CLI in-process; its IRIs are not dereferenceable."
+    },
+    {
+      "why": 2,
+      "q": "Why does dereferenceable IRIs matter?",
+      "a": "lattice-context's retrieval mechanism presupposes addressable subgraphs; without stable IRIs the context mechanism is incomplete."
+    },
+    {
+      "why": 3,
+      "q": "Why can't ousia-mcp fill this gap?",
+      "a": "ousia-mcp exposes SPARQL over MCP (agent-facing only); there is no W3C SPARQL Protocol HTTP endpoint any standard semantic-web tool could hit."
+    },
+    {
+      "why": 4,
+      "q": "Why not extend lattice-join to serve HTTP?",
+      "a": "lattice-join is a store-building tool; mixing HTTP serving into it violates single responsibility and the PRD model of slim focused crates."
+    }
+  ],
+  "ambiguities_resolved": [
+    {
+      "question": "Should empty stores exit non-zero for `check`?",
+      "resolution": "Empty but openable store exits 0 with a warning; missing/corrupt exits non-zero. AC1 only requires count > 0 for the fixture test (which loads a triple)."
+    },
+    {
+      "question": "Full JSON-LD or stub?",
+      "resolution": "Stub JSON-LD (N-Triples wrapped in @graph) is sufficient for v0.1; full framing is a deferred enhancement per non-goals."
+    }
+  ],
+  "created_at": "2026-06-15T00:00:00Z",
+  "intent_slug": "rosetta-serve"
+}

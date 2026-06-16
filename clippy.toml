@@ -1,0 +1,3 @@
+# clippy.toml for rosetta-serve
+# Mirrors the autobuilder scaffold defaults.
+msrv = "1.85"
